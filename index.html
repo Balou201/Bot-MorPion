@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morpion (Tic-Tac-Toe) - IA Imbattable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #333;
+        }
+        #message {
+            margin: 20px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+            min-height: 25px; /* Pour éviter le saut de page */
+        }
+        #choix-depart button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #choix-depart button:hover {
+            background-color: #0056b3;
+        }
+        #plateau {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            margin: 20px auto;
+            width: 300px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .case {
+            border: 3px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: white;
+            transition: background-color 0.1s;
+        }
+        .case:nth-child(3n) { border-right: none; }
+        .case:nth-child(3n-2) { border-left: none; }
+        .case:nth-child(n):nth-child(-n+3) { border-top: none; }
+        .case:nth-child(n):nth-child(n+7) { border-bottom: none; }
+
+        .case:not([data-value]):hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Styles pour les symboles */
+        .case[data-value="X"] { color: #dc3545; }
+        .case[data-value="O"] { color: #007bff; }
+
+        #rejouer {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Morpion (Tic-Tac-Toe)</h1>
+    <p id="message">Choisissez qui commence pour démarrer le jeu.</p>
+
+    <div id="choix-depart">
+        <button onclick="initialiserJeu(1)">Moi (X) commence</button>
+        <button onclick="initialiserJeu(2)">L'IA (O) commence</button>
+    </div>
+
+    <div id="plateau">
+        </div>
+
+    <button id="rejouer" onclick="reinitialiserJeu()">Rejouer</button>
+
+    <script>
+        // Le code JavaScript suit ici
+    </script>
+</body>
+</html>
