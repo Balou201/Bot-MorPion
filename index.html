@@ -17,7 +17,7 @@
             margin: 20px 0;
             font-size: 1.2em;
             font-weight: bold;
-            min-height: 25px; /* Pour éviter le saut de page */
+            min-height: 25px; 
         }
         #choix-depart button {
             padding: 10px 20px;
@@ -52,6 +52,7 @@
             background-color: white;
             transition: background-color 0.1s;
         }
+        /* Suppression des bordures inutiles pour former une grille nette */
         .case:nth-child(3n) { border-right: none; }
         .case:nth-child(3n-2) { border-left: none; }
         .case:nth-child(n):nth-child(-n+3) { border-top: none; }
@@ -62,8 +63,8 @@
         }
 
         /* Styles pour les symboles */
-        .case[data-value="X"] { color: #dc3545; }
-        .case[data-value="O"] { color: #007bff; }
+        .case[data-value="X"] { color: #dc3545; } /* Rouge */
+        .case[data-value="O"] { color: #007bff; } /* Bleu */
 
         #rejouer {
             padding: 10px 20px;
@@ -94,7 +95,219 @@
     <button id="rejouer" onclick="reinitialiserJeu()">Rejouer</button>
 
     <script>
-        // Le code JavaScript suit ici
+        // --- VARIABLES GLOBALES DU JEU ---
+        const HUMAIN = 1; // Joueur 'X'
+        const IA = 2;     // Joueur 'O'
+        let plateau = [];
+        let joueurActuel = 0;
+        let jeuActif = false;
+
+        // --- INITIALISATION DU JEU ---
+
+        function creerPlateauHTML() {
+            const plateauDiv = document.getElementById('plateau');
+            plateauDiv.innerHTML = ''; // Nettoie l'ancien plateau
+            
+            for (let i = 0; i < 9; i++) {
+                const caseDiv = document.createElement('div');
+                caseDiv.className = 'case';
+                caseDiv.dataset.index = i;
+                caseDiv.addEventListener('click', () => faireCoupHumain(i));
+                plateauDiv.appendChild(caseDiv);
+            }
+        }
+
+        function initialiserJeu(premierJoueur) {
+            document.getElementById('choix-depart').style.display = 'none';
+            document.getElementById('rejouer').style.display = 'none';
+            
+            plateau = Array(9).fill(0);
+            joueurActuel = premierJoueur;
+            jeuActif = true;
+            
+            creerPlateauHTML();
+            
+            if (joueurActuel === HUMAIN) {
+                afficherMessage("C'est à votre tour (X).");
+            } else {
+                afficherMessage("L'IA commence (O)...");
+                // Laisse un délai pour que l'utilisateur puisse lire le message
+                setTimeout(tourIA, 500); 
+            }
+        }
+
+        function reinitialiserJeu() {
+            document.getElementById('choix-depart').style.display = 'block';
+            document.getElementById('rejouer').style.display = 'none';
+            afficherMessage("Choisissez qui commence pour démarrer le jeu.");
+            document.getElementById('plateau').innerHTML = '';
+            jeuActif = false;
+        }
+
+        function mettreAJourVisuel(index, joueur) {
+            const symbole = joueur === HUMAIN ? 'X' : 'O';
+            const caseDiv = document.querySelector(`.case[data-index="${index}"]`);
+            if (caseDiv && !caseDiv.dataset.value) {
+                caseDiv.innerText = symbole;
+                caseDiv.dataset.value = symbole;
+            }
+        }
+
+        function afficherMessage(texte) {
+            document.getElementById('message').innerText = texte;
+        }
+
+        // --- LOGIQUE DU JEU ---
+
+        // Vérifie si un joueur a gagné ou s'il y a match nul
+        function verifierFinJeu(tab) {
+            const lignesGagnantes = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontales
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Verticales
+                [0, 4, 8], [2, 4, 6]             // Diagonales
+            ];
+
+            for (const [a, b, c] of lignesGagnantes) {
+                if (tab[a] !== 0 && tab[a] === tab[b] && tab[a] === tab[c]) {
+                    return tab[a]; // Retourne le joueur gagnant (1 ou 2)
+                }
+            }
+
+            if (!tab.includes(0)) {
+                return 0; // Match nul
+            }
+
+            return null; // Jeu en cours
+        }
+
+        function faireCoup(index, joueur) {
+            // Vérifie si le coup est valide
+            if (!jeuActif || plateau[index] !== 0) {
+                return false;
+            }
+
+            plateau[index] = joueur;
+            mettreAJourVisuel(index, joueur);
+
+            const resultat = verifierFinJeu(plateau);
+            if (resultat !== null) {
+                // Le jeu est terminé
+                jeuActif = false;
+                document.getElementById('rejouer').style.display = 'block';
+                if (resultat === HUMAIN) {
+                    afficherMessage("Félicitations ! Vous avez gagné !");
+                } else if (resultat === IA) {
+                    afficherMessage("L'IA (O) a gagné. Dommage !");
+                } else {
+                    afficherMessage("Match nul !");
+                }
+                return true;
+            }
+
+            // Passe au joueur suivant
+            joueurActuel = (joueur === HUMAIN) ? IA : HUMAIN;
+            afficherMessage(`C'est au tour de ${joueurActuel === HUMAIN ? 'Vous (X)' : "l'IA (O)"}.`);
+            
+            return true;
+        }
+
+        function faireCoupHumain(index) {
+            if (joueurActuel === HUMAIN) {
+                if (faireCoup(index, HUMAIN)) {
+                    // Si le coup a été fait et le jeu continue, c'est au tour de l'IA
+                    if (jeuActif) {
+                        setTimeout(tourIA, 500); 
+                    }
+                }
+            }
+        }
+
+        // --- L'IA IMBATTABLE (ALGORITHME MINIMAX) ---
+
+        function tourIA() {
+            if (joueurActuel === IA && jeuActif) {
+                // L'IA utilise Minimax pour trouver le meilleur coup
+                const meilleurCoup = trouverMeilleurCoup(plateau, IA);
+                if (meilleurCoup.index !== undefined) {
+                    faireCoup(meilleurCoup.index, IA);
+                }
+            }
+        }
+
+        /**
+         * L'algorithme Minimax pour le Tic-Tac-Toe.
+         * Il retourne le meilleur coup à jouer (index) et son score.
+         */
+        function trouverMeilleurCoup(nouveauPlateau, joueur) {
+            // Coups possibles (index où la valeur est 0)
+            const coupsDisponibles = nouveauPlateau
+                .map((val, index) => (val === 0 ? index : null))
+                .filter(index => index !== null);
+
+            // --- ÉTAPE 1 : CONDITIONS DE FIN DE JEU (Base de la récursion) ---
+            const resultat = verifierFinJeu(nouveauPlateau);
+            if (resultat === IA) {
+                return { score: 10 }; // L'IA gagne
+            } else if (resultat === HUMAIN) {
+                return { score: -10 }; // L'Humain gagne
+            } else if (resultat === 0) {
+                return { score: 0 }; // Match nul
+            }
+
+            const tousLesCoups = [];
+
+            // --- ÉTAPE 2 : CALCUL DES SCORES POUR CHAQUE COUP ---
+            for (let i = 0; i < coupsDisponibles.length; i++) {
+                const coup = {};
+                coup.index = coupsDisponibles[i];
+
+                // Fais le coup
+                nouveauPlateau[coupsDisponibles[i]] = joueur;
+
+                // Calcule le score en appelant récursivement Minimax
+                if (joueur === IA) {
+                    // L'IA cherche à MAXIMISER (on appelle Minimax pour l'adversaire (HUMAIN))
+                    const resultatMinimax = trouverMeilleurCoup(nouveauPlateau, HUMAIN);
+                    coup.score = resultatMinimax.score;
+                } else {
+                    // L'Humain cherche à MINIMISER le score de l'IA (on appelle Minimax pour l'IA)
+                    const resultatMinimax = trouverMeilleurCoup(nouveauPlateau, IA);
+                    coup.score = resultatMinimax.score;
+                }
+
+                // Annule le coup pour restaurer le plateau (backtracking)
+                nouveauPlateau[coupsDisponibles[i]] = 0;
+                
+                tousLesCoups.push(coup);
+            }
+
+            // --- ÉTAPE 3 : CHOIX DU MEILLEUR COUP ---
+            let meilleurCoup = null;
+            if (joueur === IA) {
+                // MAXIMISER le score (L'IA)
+                let meilleurScore = -Infinity;
+                for (let i = 0; i < tousLesCoups.length; i++) {
+                    if (tousLesCoups[i].score > meilleurScore) {
+                        meilleurScore = tousLesCoups[i].score;
+                        meilleurCoup = tousLesCoups[i];
+                    }
+                }
+            } else {
+                // MINIMISER le score (L'Humain, pour l'appel récursif)
+                let meilleurScore = Infinity;
+                for (let i = 0; i < tousLesCoups.length; i++) {
+                    if (tousLesCoups[i].score < meilleurScore) {
+                        meilleurScore = tousLesCoups[i].score;
+                        meilleurCoup = tousLesCoups[i];
+                    }
+                }
+            }
+
+            return meilleurCoup;
+        }
+
+        // Génère le plateau visuel vide au chargement de la page
+        creerPlateauHTML();
     </script>
 </body>
 </html>
